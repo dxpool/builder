@@ -1419,9 +1419,11 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 	}
 	bundlesToConsider, sbundlesToConsider, err := w.getSimulatedBundles(env)
 	if err != nil {
+		log.Error("get simu error: ", err)
 		return nil, nil, nil, nil, err
 	}
-
+	log.Info("bundles simu is: ", bundlesToConsider)
+	log.Info("bundles simu is: ", sbundlesToConsider)
 	var (
 		newEnv       *environment
 		blockBundles []types.SimulatedBundle

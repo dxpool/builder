@@ -132,7 +132,9 @@ func (r *LocalRelay) submitBlockCapella(msg *capellaapi.SubmitBlockRequest) erro
 }
 
 func (r *LocalRelay) submitBlock(msg *bellatrixapi.SubmitBlockRequest) error {
+	log.Info("===enter submit block")
 	header, err := PayloadToPayloadHeader(msg.ExecutionPayload)
+	log.Info("header is :", header)
 	if err != nil {
 		log.Error("could not convert payload to header", "err", err)
 		return err
@@ -275,7 +277,8 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	bestHeader := r.bestHeader
 	profit := r.profit
 	r.bestDataLock.Unlock()
-
+	log.Info("best header is:", bestHeader)
+	log.Info("parentHashHex is : ", parentHashHex)
 	if bestHeader == nil || bestHeader.ParentHash.String() != parentHashHex {
 		println("handle get header 44444")
 		respondError(w, http.StatusBadRequest, "unknown payload")
@@ -442,10 +445,13 @@ func ExecutionPayloadHeaderEqual(l, r *bellatrix.ExecutionPayloadHeader) bool {
 // PayloadToPayloadHeader converts an ExecutionPayload to ExecutionPayloadHeader
 func PayloadToPayloadHeader(p *bellatrix.ExecutionPayload) (*bellatrix.ExecutionPayloadHeader, error) {
 	if p == nil {
+		log.Error("p nil error ====")
 		return nil, errors.New("nil payload")
 	}
 
 	var txs []bellatrix.Transaction
+	log.Info("p.transactions length is :", len(p.Transactions))
+
 	txs = append(txs, p.Transactions...)
 
 	transactions := bellatrixutil.ExecutionPayloadTransactions{Transactions: txs}

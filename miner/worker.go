@@ -384,6 +384,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
 	if flashbots.algoType != ALGO_MEV_GETH || !flashbots.isFlashbots {
+		println("enter task loop and result loop")
 		// only mine if not flashbots
 		worker.wg.Add(2)
 		go worker.resultLoop()
@@ -646,12 +647,14 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
+			println("====enter netWorkCh")
 			// Don't start if the work has already been interrupted
 			if req.interrupt == nil || atomic.LoadInt32(req.interrupt) == commitInterruptNone {
 				w.commitWork(req.interrupt, req.noempty, req.timestamp)
 			}
 
 		case req := <-w.getWorkCh:
+			println("====enter getWorkCh")
 			go func() {
 				block, fees, err := w.generateWork(req.params)
 				req.result <- &newPayloadResult{
@@ -767,12 +770,14 @@ func (w *worker) taskLoop() {
 	for {
 		select {
 		case task := <-w.taskCh:
+			println("task loop ====receive task")
 			if w.newTaskHook != nil {
 				w.newTaskHook(task)
 			}
 			// Reject duplicate sealing work due to resubmitting.
 			sealHash := w.engine.SealHash(task.block.Header())
 			if sealHash == prev {
+				println("task loop ====111111")
 				continue
 			}
 
@@ -780,6 +785,7 @@ func (w *worker) taskLoop() {
 			// reject new tasks which don't profit
 			if taskParentHash == prevParentHash &&
 				prevProfit != nil && task.profit.Cmp(prevProfit) < 0 {
+				println("task loop ====222222")
 				continue
 			}
 			prevParentHash = taskParentHash
@@ -790,6 +796,7 @@ func (w *worker) taskLoop() {
 			stopCh, prev = make(chan struct{}), sealHash
 			log.Info("Proposed miner block", "blockNumber", task.block.Number(), "profit", ethIntToFloat(prevProfit), "isFlashbots", task.isFlashbots, "sealhash", sealHash, "parentHash", prevParentHash, "worker", task.worker)
 			if w.skipSealHook != nil && w.skipSealHook(task) {
+				println("task loop ====33333")
 				continue
 			}
 			w.pendingMu.Lock()
@@ -1313,10 +1320,13 @@ func (w *worker) fillTransactionsSelectAlgo(interrupt *int32, env *environment) 
 	)
 	switch w.flashbots.algoType {
 	case ALGO_GREEDY, ALGO_GREEDY_BUCKETS, ALGO_GREEDY_MULTISNAP, ALGO_GREEDY_BUCKETS_MULTISNAP:
+		println("===== select greedy")
 		blockBundles, allBundles, usedSbundles, mempoolTxHashes, err = w.fillTransactionsAlgoWorker(interrupt, env)
 	case ALGO_MEV_GETH:
+		println("======= select mev geth")
 		blockBundles, allBundles, mempoolTxHashes, err = w.fillTransactions(interrupt, env)
 	default:
+		println("===== select default")
 		blockBundles, allBundles, mempoolTxHashes, err = w.fillTransactions(interrupt, env)
 	}
 	return blockBundles, allBundles, usedSbundles, mempoolTxHashes, err
@@ -1327,9 +1337,11 @@ func (w *worker) fillTransactionsSelectAlgo(interrupt *int32, env *environment) 
 // be customized with the plugin in the future.
 // Returns error if any, otherwise the bundles that made it into the block and all bundles that passed simulation
 func (w *worker) fillTransactions(interrupt *int32, env *environment) ([]types.SimulatedBundle, []types.SimulatedBundle, map[common.Hash]struct{}, error) {
+	println("=== enter fill transactions")
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
+	log.Info("======== get pending txids, length is : ", len(pending))
 	mempoolTxHashes := make(map[common.Hash]struct{}, len(pending))
 	for _, txs := range pending {
 		for _, tx := range txs {
@@ -1394,9 +1406,11 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) ([]types.S
 // into the given sealing block.
 // Returns error if any, otherwise the bundles that made it into the block and all bundles that passed simulation
 func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) ([]types.SimulatedBundle, []types.SimulatedBundle, []types.UsedSBundle, map[common.Hash]struct{}, error) {
+	println("====== enter fill transactions algo")
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
+	println("pending length is :", len(pending))
 	mempoolTxHashes := make(map[common.Hash]struct{}, len(pending))
 	for _, txs := range pending {
 		for _, tx := range txs {
@@ -1416,6 +1430,7 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 	)
 	switch w.flashbots.algoType {
 	case ALGO_GREEDY_BUCKETS:
+		println("algo 1========")
 		priceCutoffPercent := w.config.PriceCutoffPercent
 		if !(priceCutoffPercent >= 0 && priceCutoffPercent <= 100) {
 			return nil, nil, nil, nil, errors.New("invalid price cutoff percent - must be between 0 and 100")
@@ -1434,6 +1449,7 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 
 		newEnv, blockBundles, usedSbundle = builder.buildBlock(bundlesToConsider, sbundlesToConsider, pending)
 	case ALGO_GREEDY_BUCKETS_MULTISNAP:
+		println("algo 2 ======")
 		priceCutoffPercent := w.config.PriceCutoffPercent
 		if !(priceCutoffPercent >= 0 && priceCutoffPercent <= 100) {
 			return nil, nil, nil, nil, errors.New("invalid price cutoff percent - must be between 0 and 100")
@@ -1451,6 +1467,7 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 		)
 		newEnv, blockBundles, usedSbundle = builder.buildBlock(bundlesToConsider, sbundlesToConsider, pending)
 	case ALGO_GREEDY_MULTISNAP:
+		println("algo 3 ========")
 		// For greedy multi-snap builder, set algorithm configuration to default values,
 		// except DropRevertibleTxOnErr which is passed in from worker config
 		algoConf := &algorithmConfig{
@@ -1465,8 +1482,10 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 		)
 		newEnv, blockBundles, usedSbundle = builder.buildBlock(bundlesToConsider, sbundlesToConsider, pending)
 	case ALGO_GREEDY:
+		println("algo 4 ===========")
 		fallthrough
 	default:
+		println("algo 5========")
 		// For default greedy builder, set algorithm configuration to default values,
 		// except DropRevertibleTxOnErr which is passed in from worker config
 		algoConf := &algorithmConfig{
@@ -1483,6 +1502,7 @@ func (w *worker) fillTransactionsAlgoWorker(interrupt *int32, env *environment) 
 	}
 
 	if metrics.EnabledBuilder {
+		println("enter enable builder =========")
 		mergeAlgoTimer.Update(time.Since(start))
 	}
 	*env = *newEnv
@@ -1521,6 +1541,7 @@ func (w *worker) getSimulatedBundles(env *environment) ([]types.SimulatedBundle,
 
 // generateWork generates a sealing block based on the given parameters.
 func (w *worker) generateWork(params *generateParams) (*types.Block, *big.Int, error) {
+	println("====== enter generate work")
 	start := time.Now()
 	validatorCoinbase := params.coinbase
 	// Set builder coinbase to be passed to beacon header
@@ -1553,6 +1574,7 @@ func (w *worker) generateWork(params *generateParams) (*types.Block, *big.Int, e
 			"txs", len(env.txs), "bundles", len(blockBundles), "okSbundles", okSbundles, "totalSbundles", totalSbundles,
 			"gasUsed", block.GasUsed(), "time", time.Since(start))
 		if metrics.EnabledBuilder {
+			println("======== generate work enter enable builder")
 			buildBlockTimer.Update(time.Since(start))
 			blockProfitHistogram.Update(profit.Int64())
 			blockProfitGauge.Update(profit.Int64())

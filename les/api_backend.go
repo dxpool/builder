@@ -203,6 +203,7 @@ func (b *LesApiBackend) RemoveTx(txHash common.Hash) {
 }
 
 func (b *LesApiBackend) SendBundle(ctx context.Context, txs types.Transactions, blockNumber rpc.BlockNumber, uuid uuid.UUID, signingAddress common.Address, minTimestamp uint64, maxTimestamp uint64, revertingTxHashes []common.Hash) error {
+	println("===enter les send bundle")
 	return b.eth.txPool.AddMevBundle(txs, big.NewInt(blockNumber.Int64()), uuid, signingAddress, minTimestamp, maxTimestamp, revertingTxHashes)
 }
 

@@ -168,6 +168,7 @@ func parseBundleInner(level int, args *SendMevBundleArgs) (bundle types.SBundle,
 }
 
 func (api *MevAPI) SendBundle(ctx context.Context, args SendMevBundleArgs) error {
+	println("===enter mev api send bundle")
 	bundle, err := parseBundleInner(0, &args)
 	if err != nil {
 		return err

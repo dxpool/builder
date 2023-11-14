@@ -2140,6 +2140,7 @@ type SendBundleArgs struct {
 // SendBundle will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce and ensuring validity
 func (s *PrivateTxBundleAPI) SendBundle(ctx context.Context, args SendBundleArgs) error {
+	println("===enter priv send bundle")
 	var txs types.Transactions
 	if len(args.Txs) == 0 {
 		return errors.New("bundle missing txs")

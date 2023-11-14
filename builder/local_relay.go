@@ -244,6 +244,7 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	slot, err := strconv.Atoi(vars["slot"])
 	if err != nil {
+		println("handle get header 1111111")
 		respondError(w, http.StatusBadRequest, "incorrect slot")
 		return
 	}
@@ -260,10 +261,12 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	// Only check if slot is within a couple of the expected one, otherwise will force validators resync
 	vd, err := r.GetValidatorForSlot(uint64(slot))
 	if err != nil {
+		println("handle get header 222222")
 		respondError(w, http.StatusBadRequest, "unknown validator")
 		return
 	}
 	if vd.Pubkey != pubkeyHex {
+		println("handle get header 333333")
 		respondError(w, http.StatusBadRequest, "unknown validator")
 		return
 	}
@@ -274,6 +277,7 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	r.bestDataLock.Unlock()
 
 	if bestHeader == nil || bestHeader.ParentHash.String() != parentHashHex {
+		println("handle get header 44444")
 		respondError(w, http.StatusBadRequest, "unknown payload")
 		return
 	}
@@ -285,6 +289,7 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	}
 	signature, err := ssz.SignMessage(&bid, r.builderSigningDomain, r.relaySecretKey)
 	if err != nil {
+		println("handle get header 555555")
 		respondError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -297,6 +302,7 @@ func (r *LocalRelay) handleGetHeader(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		println("handle get header 666666")
 		respondError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}

@@ -680,6 +680,7 @@ LubLoop:
 // also prunes bundles that are outdated
 // Returns regular bundles and a function resolving to current cancellable bundles
 func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]types.MevBundle, chan []types.MevBundle) {
+	println("====enter mev bundles")
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -692,7 +693,7 @@ func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]t
 	var bundles []types.MevBundle
 	// (uuid, signingAddress) -> list of bundles
 	var uuidBundles = make(map[uuidBundleKey][]types.MevBundle)
-
+	println("length bundles is : ", len(pool.mevBundles))
 	for _, bundle := range pool.mevBundles {
 		// Prune outdated bundles
 		if (bundle.MaxTimestamp != 0 && blockTimestamp > bundle.MaxTimestamp) || blockNumber.Cmp(bundle.BlockNumber) > 0 {
@@ -720,7 +721,7 @@ func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]t
 		// return the ones which are in time
 		ret = append(ret, bundle)
 	}
-
+	println("last length bundles is : ", len(bundles))
 	pool.mevBundles = bundles
 
 	cancellableBundlesCh := make(chan []types.MevBundle, 1)
@@ -743,8 +744,10 @@ func (pool *TxPool) AddMevBundles(mevBundles []types.MevBundle) error {
 
 // AddMevBundle adds a mev bundle to the pool
 func (pool *TxPool) AddMevBundle(txs types.Transactions, blockNumber *big.Int, replacementUuid uuid.UUID, signingAddress common.Address, minTimestamp, maxTimestamp uint64, revertingTxHashes []common.Hash) error {
+	println("---------enter add mev bundle")
 	bundleHasher := sha3.NewLegacyKeccak256()
 	for _, tx := range txs {
+		println("-------------txHash: ", tx.Hash())
 		bundleHasher.Write(tx.Hash().Bytes())
 	}
 	bundleHash := common.BytesToHash(bundleHasher.Sum(nil))
@@ -762,6 +765,7 @@ func (pool *TxPool) AddMevBundle(txs types.Transactions, blockNumber *big.Int, r
 		RevertingTxHashes: revertingTxHashes,
 		Hash:              bundleHash,
 	})
+	println("length of mev bundles: ", len(pool.mevBundles))
 	return nil
 }
 

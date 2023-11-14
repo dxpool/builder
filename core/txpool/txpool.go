@@ -747,7 +747,7 @@ func (pool *TxPool) AddMevBundle(txs types.Transactions, blockNumber *big.Int, r
 	println("---------enter add mev bundle")
 	bundleHasher := sha3.NewLegacyKeccak256()
 	for _, tx := range txs {
-		println("-------------txHash: ", tx.Hash())
+		println("-------------txHash: ", tx.Hash().String())
 		bundleHasher.Write(tx.Hash().Bytes())
 	}
 	bundleHash := common.BytesToHash(bundleHasher.Sum(nil))

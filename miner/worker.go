@@ -1526,6 +1526,7 @@ func (w *worker) getSimulatedBundles(env *environment) ([]types.SimulatedBundle,
 		log.Error("Failed to simulate bundles", "err", err)
 		return nil, nil, err
 	}
+	log.Info("simulateBundles", "simBundles", simBundles, "simSBundles", simSBundles)
 
 	ccBundles := <-ccBundlesCh
 	if ccBundles == nil {

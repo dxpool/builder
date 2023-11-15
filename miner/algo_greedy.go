@@ -43,6 +43,7 @@ func newGreedyBuilder(
 func (b *greedyBuilder) mergeOrdersIntoEnvDiff(
 	envDiff *environmentDiff, orders *types.TransactionsByPriceAndNonce) ([]types.SimulatedBundle, []types.UsedSBundle,
 ) {
+	log.Info("enter merge orders into env diff")
 	var (
 		usedBundles  []types.SimulatedBundle
 		usedSbundles []types.UsedSBundle
@@ -54,6 +55,7 @@ func (b *greedyBuilder) mergeOrdersIntoEnvDiff(
 		}
 
 		if tx := order.Tx(); tx != nil {
+			log.Info("tx", "hash", tx.Hash().String())
 			receipt, skip, err := envDiff.commitTx(tx, b.chainData)
 			switch skip {
 			case shiftTx:
@@ -71,6 +73,7 @@ func (b *greedyBuilder) mergeOrdersIntoEnvDiff(
 				log.Trace("Included tx", "EGP", effGapPrice.String(), "gasUsed", receipt.GasUsed)
 			}
 		} else if bundle := order.Bundle(); bundle != nil {
+			log.Info("bundle", "bundleHash", bundle.OriginalBundle.Hash.String())
 			//log.Debug("buildBlock considering bundle", "egp", bundle.MevGasPrice.String(), "hash", bundle.OriginalBundle.Hash)
 			err := envDiff.commitBundle(bundle, b.chainData, b.interrupt, b.algoConf)
 			orders.Pop()

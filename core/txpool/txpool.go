@@ -697,11 +697,13 @@ func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]t
 	for _, bundle := range pool.mevBundles {
 		// Prune outdated bundles
 		if (bundle.MaxTimestamp != 0 && blockTimestamp > bundle.MaxTimestamp) || blockNumber.Cmp(bundle.BlockNumber) > 0 {
+			log.Info("mev bundles continue 111111111", "blockTimestamp", blockTimestamp, "bundle max ts", bundle.MaxTimestamp, "block num", blockNumber.Int64(), "bundle num", bundle.BlockNumber.Int64())
 			continue
 		}
 
 		// Roll over future bundles
 		if (bundle.MinTimestamp != 0 && blockTimestamp < bundle.MinTimestamp) || blockNumber.Cmp(bundle.BlockNumber) < 0 {
+			log.Info("mev bundles continue 2222", "blockTimestamp", blockTimestamp, "bundle min ts", bundle.MinTimestamp, "block num", blockNumber.Int64(), "bundle num", bundle.BlockNumber.Int64())
 			bundles = append(bundles, bundle)
 			continue
 		}
@@ -713,6 +715,7 @@ func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]t
 
 		// do not append to the return quite yet, check the DB for the latest bundle for that uuid
 		if bundle.Uuid != types.EmptyUUID {
+			log.Info("mev bundle", "bundle uuid", bundle.Uuid)
 			ubk := uuidBundleKey{bundle.Uuid, bundle.SigningAddress}
 			uuidBundles[ubk] = append(uuidBundles[ubk], bundle)
 			continue
@@ -721,7 +724,7 @@ func (pool *TxPool) MevBundles(blockNumber *big.Int, blockTimestamp uint64) ([]t
 		// return the ones which are in time
 		ret = append(ret, bundle)
 	}
-	println("last length bundles is : ", len(bundles))
+	log.Info("last length ret is : ", "len", len(ret))
 	pool.mevBundles = bundles
 
 	cancellableBundlesCh := make(chan []types.MevBundle, 1)

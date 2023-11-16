@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"github.com/ethereum/go-ethereum/log"
 	"io"
 	"math/big"
 	"sort"
@@ -678,7 +679,11 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		txs[from] = accTxs[1:]
 	}
 	heap.Init(&heads)
-
+	for _, h := range heads {
+		log.Info(h.Tx().Hash().String())
+		log.Info(h.minerFee.String())
+		log.Info("==============")
+	}
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{
 		txs:     txs,

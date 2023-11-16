@@ -680,9 +680,19 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	}
 	heap.Init(&heads)
 	for _, h := range heads {
-		log.Info(h.Tx().Hash().String())
-		log.Info(h.minerFee.String())
-		log.Info("==============")
+		if h.Tx() != nil {
+			log.Info(h.Tx().Hash().String())
+			log.Info(h.minerFee.String())
+			log.Info("==============")
+		}
+		if h.Bundle() != nil {
+			for _, t := range h.Bundle().OriginalBundle.Txs {
+				log.Info(t.Hash().String())
+			}
+			log.Info(h.minerFee.String())
+			log.Info("==============")
+		}
+
 	}
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{

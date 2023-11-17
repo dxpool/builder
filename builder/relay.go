@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -199,7 +200,8 @@ func (r *RemoteRelay) getSlotValidatorMapFromRelay() (map[uint64]ValidatorData, 
 	if err != nil {
 		return nil, err
 	}
-
+	jsonDst, _ := json.Marshal(dst)
+	log.Info(string(jsonDst))
 	if code > 299 {
 		return nil, fmt.Errorf("non-ok response code %d from relay", code)
 	}

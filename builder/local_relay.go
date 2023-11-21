@@ -225,6 +225,7 @@ func (r *LocalRelay) handleRegisterValidator(w http.ResponseWriter, req *http.Re
 }
 
 func (r *LocalRelay) GetValidatorForSlot(nextSlot uint64) (ValidatorData, error) {
+	log.Info("LOCAL-RELAY GetValidatorForSlot() getting validator for slot", "slot", nextSlot)
 	pubkeyHex, err := r.beaconClient.getProposerForNextSlot(nextSlot)
 	if err != nil {
 		return ValidatorData{}, err

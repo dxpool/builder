@@ -64,6 +64,7 @@ type GetValidatorRelayResponse []struct {
 }
 
 func (r *RemoteRelay) updateValidatorsMap(currentSlot uint64, retries int) error {
+	fmt.Println("updateValidatorsMap() start")
 	r.validatorsLock.Lock()
 	if r.validatorSyncOngoing {
 		r.validatorsLock.Unlock()
@@ -72,9 +73,11 @@ func (r *RemoteRelay) updateValidatorsMap(currentSlot uint64, retries int) error
 	r.validatorSyncOngoing = true
 	r.validatorsLock.Unlock()
 
+	fmt.Println("updateValidatorsMap() loading 1")
 	log.Info("requesting ", "currentSlot", currentSlot)
 	newMap, err := r.getSlotValidatorMapFromRelay()
 	for err != nil && retries > 0 {
+		log.Error("111 getSlotValidatorMapFromRelay() error")
 		log.Error("could not get validators map from relay, retrying", "err", err)
 		time.Sleep(time.Second)
 		newMap, err = r.getSlotValidatorMapFromRelay()
@@ -82,12 +85,15 @@ func (r *RemoteRelay) updateValidatorsMap(currentSlot uint64, retries int) error
 	}
 	r.validatorsLock.Lock()
 	r.validatorSyncOngoing = false
+	fmt.Println("updateValidatorsMap() loading 2")
 	if err != nil {
 		r.validatorsLock.Unlock()
+		log.Error("222 error")
 		log.Error("could not get validators map from relay", "err", err)
 		return err
 	}
-
+	fmt.Println("updateValidatorsMap() loading 3")
+	fmt.Println("updateValidatorsMap() newMap:", newMap)
 	r.validatorSlotMap = newMap
 	r.lastRequestedSlot = currentSlot
 	r.validatorsLock.Unlock()
@@ -100,31 +106,55 @@ func (r *RemoteRelay) GetValidatorForSlot(nextSlot uint64) (ValidatorData, error
 	// next slot is expected to be the actual chain's next slot, not something requested by the user!
 	// if not sanitized it will force resync of validator data and possibly is a DoS vector
 
+	// 手动添加一段代码
+	fmt.Println("手动updateValidatorsMap")
+	err := r.updateValidatorsMap(nextSlot, 1)
+	if err != nil {
+		fmt.Println("手动 updateValidatorsMap 失败")
+		log.Error("could not update validators map", "err", err)
+	} else {
+		fmt.Println("手动 updateValidatorsMap 成功")
+	}
+
+	fmt.Println("GetValidatorForSlot start")
 	r.validatorsLock.RLock()
+	// TODO 主要是因为这个32被写死了
 	if r.lastRequestedSlot == 0 || nextSlot/32 > r.lastRequestedSlot/32 {
+		fmt.Println("GetValidatorForSlot loading 0.5")
 		// Every epoch request validators map
 		go func() {
+			fmt.Println("r.updateValidatorsMap ", "nextSlot", nextSlot)
 			err := r.updateValidatorsMap(nextSlot, 1)
 			if err != nil {
 				log.Error("could not update validators map", "err", err)
 			}
 		}()
 	}
-
+	fmt.Println("GetValidatorForSlot loading 1")
+	fmt.Println("r.validatorSlotMap:", r.validatorSlotMap)
 	vd, found := r.validatorSlotMap[nextSlot]
 	r.validatorsLock.RUnlock()
 
 	if r.localRelay != nil {
+		fmt.Println("LOCAL RELAY is active")
 		localValidator, err := r.localRelay.GetValidatorForSlot(nextSlot)
+		fmt.Println("RemoteRelay qqq GetValidatorForSlot() r.localRelay != nil, localValidator:", localValidator)
 		if err == nil {
 			log.Info("Validator registration overwritten by local data", "slot", nextSlot, "validator", localValidator)
 			return localValidator, nil
 		}
+	} else {
+		fmt.Println("LOCAL RELAY is inactive")
 	}
+	fmt.Println("GetValidatorForSlot loading 2")
 
 	if found {
+		fmt.Println("RemoteRelay qqq GetValidatorForSlot() found:", found)
+		fmt.Println("RemoteRelay qqq GetValidatorForSlot() vd:", vd)
 		return vd, nil
 	}
+
+	fmt.Println("GetValidatorForSlot end: ", ValidatorData{}, ErrValidatorNotFound)
 
 	return ValidatorData{}, ErrValidatorNotFound
 }
@@ -201,18 +231,26 @@ func (r *RemoteRelay) getSlotValidatorMapFromRelay() (map[uint64]ValidatorData, 
 		return nil, err
 	}
 	jsonDst, _ := json.Marshal(dst)
-	log.Info(string(jsonDst))
+	// 这里的输出是正常的
+	fmt.Println("000 getSlotValidatorMapFromRelay:", string(jsonDst))
 	if code > 299 {
 		return nil, fmt.Errorf("non-ok response code %d from relay", code)
 	}
 
 	res := make(map[uint64]ValidatorData)
 	for _, data := range dst {
+		fmt.Println("111 data:", data)
+		fmt.Println("111 data.Entry.Message:", data.Entry.Message)
+		fmt.Println("111 data.Entry.Message.FeeRecipient:", data.Entry.Message.FeeRecipient)
 		feeRecipient, err := utils.HexToAddress(data.Entry.Message.FeeRecipient)
+		//feeRecipient, err := utils.HexToAddress("0x123463a4b065722e99115d6c222f267d9cabb524")
+
 		if err != nil {
 			log.Error("Ill-formatted fee_recipient from relay", "data", data)
 			continue
 		}
+		// 这里是正常的
+		fmt.Println("这里是正常的 111 feeRecipient:", feeRecipient)
 
 		pubkeyHex := PubkeyHex(strings.ToLower(data.Entry.Message.Pubkey))
 

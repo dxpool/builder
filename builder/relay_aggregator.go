@@ -87,6 +87,7 @@ type RelayValidatorRegistration struct {
 }
 
 func (r *RemoteRelayAggregator) GetValidatorForSlot(nextSlot uint64) (ValidatorData, error) {
+	log.Info("RemoteRelayAggregator GetValidatorForSlot() getting validator for slot", "slot", nextSlot)
 	registrationsCh := make(chan *RelayValidatorRegistration, len(r.relays))
 	for i, relay := range r.relays {
 		go func(relay IRelay, relayI int) {
@@ -106,6 +107,7 @@ func (r *RemoteRelayAggregator) GetValidatorForSlot(nextSlot uint64) (ValidatorD
 	go r.updateRelayRegistrations(nextSlot, registrationsCh, topRegistrationCh)
 
 	if vd, ok := <-topRegistrationCh; ok {
+		log.Info("RemoteRelayAggregator GetValidatorForSlot() returning validator", "slot", nextSlot, "validator", vd)
 		return vd, nil
 	}
 	return ValidatorData{}, ErrValidatorNotFound

@@ -168,6 +168,7 @@ func (b *BeaconClient) getProposerForNextSlot(requestedSlot uint64) (PubkeyHex, 
 
 	nextSlotProposer, found := b.slotProposerMap[requestedSlot]
 	if !found {
+		// TODO 这里出错了 slotProposerMap=map[]是空
 		log.Error("inconsistent proposer mapping", "requestSlot", requestedSlot, "slotProposerMap", b.slotProposerMap)
 		return PubkeyHex(""), errors.New("inconsistent proposer mapping")
 	}
@@ -182,19 +183,25 @@ func (b *BeaconClient) Start() error {
 func (b *BeaconClient) UpdateValidatorMapForever() {
 	durationPerSlot := time.Duration(b.secondsInSlot) * time.Second
 
+	log.Info("000 正在更新验证人列表")
 	prevFetchSlot := uint64(0)
 
 	// fetch current epoch if beacon is online
 	currentSlot, err := fetchCurrentSlot(b.endpoint)
 	if err != nil {
+		// 没走到这
 		log.Error("could not get current slot", "err", err)
 	} else {
 		currentEpoch := currentSlot / b.slotsInEpoch
 		slotProposerMap, err := fetchEpochProposersMap(b.endpoint, currentEpoch)
+		//没走到这
+		log.Info("222 UpdateValidatorMapForever() ", "epoch", currentEpoch, "slotProposerMap", slotProposerMap)
 		if err != nil {
-			log.Error("could not fetch validators map", "epoch", currentEpoch, "err", err)
+			// 没走到这
+			log.Error("000 could not fetch validators map", "epoch", currentEpoch, "err", err)
 		} else {
 			b.mu.Lock()
+			log.Info("333 UpdateValidatorMapForever() ", "epoch", currentEpoch, "slotProposerMap", slotProposerMap)
 			b.slotProposerMap = slotProposerMap
 			b.mu.Unlock()
 		}
@@ -213,6 +220,7 @@ func (b *BeaconClient) UpdateValidatorMapForever() {
 		case <-timer.C:
 		}
 
+		log.Info("111 正在更新验证人列表")
 		currentSlot, err := fetchCurrentSlot(b.endpoint)
 		if err != nil {
 			log.Error("could not get current slot", "err", err)
@@ -235,6 +243,8 @@ func (b *BeaconClient) UpdateValidatorMapForever() {
 			continue
 		}
 
+		log.Info("444 fetch validators map", "epoch", currentEpoch+1, "slotProposerMap", slotProposerMap)
+
 		prevFetchSlot = currentSlot
 		b.mu.Lock()
 		// remove previous epoch slots
@@ -249,6 +259,7 @@ func (b *BeaconClient) UpdateValidatorMapForever() {
 		}
 		b.mu.Unlock()
 
+		log.Info("222 更新验证人列表完毕")
 		timer.Reset(time.Duration(nextFetchSlot-currentSlot) * durationPerSlot)
 	}
 }
@@ -374,6 +385,8 @@ func fetchEpochProposersMap(endpoint string, epoch uint64) (map[uint64]PubkeyHex
 		}
 		proposersMap[uint64(slot)] = PubkeyHex(proposerDuty.PubkeyHex)
 	}
+
+	fmt.Println("fetchEpochProposersMap() proposersMap:", proposersMap)
 	return proposersMap, nil
 }
 

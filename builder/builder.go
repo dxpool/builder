@@ -171,6 +171,7 @@ func (b *Builder) Start() error {
 					// Subsequent sse events should only be canonical!
 					if !b.ignoreLatePayloadAttributes {
 						err := b.OnPayloadAttribute(&payloadAttributes)
+						fmt.Println("ppp payloadAttributes", payloadAttributes)
 						if err != nil {
 							log.Error("error with builder processing on payload attribute",
 								"latestSlot", currentSlot,
@@ -180,9 +181,12 @@ func (b *Builder) Start() error {
 						}
 					}
 				} else if payloadAttributes.Slot > currentSlot {
+					fmt.Println("rrr payloadAttributes Slot", payloadAttributes.Slot)
+					fmt.Println("rrr payloadAttributes currentSlot", currentSlot)
 					currentSlot = payloadAttributes.Slot
 					err := b.OnPayloadAttribute(&payloadAttributes)
 					if err != nil {
+						fmt.Println("qqq payloadAttributes", payloadAttributes)
 						log.Error("error with builder processing on payload attribute",
 							"latestSlot", currentSlot,
 							"processedSlot", payloadAttributes.Slot,
@@ -343,8 +347,11 @@ func (b *Builder) OnPayloadAttribute(attrs *types.BuilderPayloadAttributes) erro
 		return nil
 	}
 
+	fmt.Println("OnPayloadAttribute attrs", attrs)
 	vd, err := b.relay.GetValidatorForSlot(attrs.Slot)
 	if err != nil {
+		// TODO 这里出错了
+		fmt.Println("vd: ", vd)
 		return fmt.Errorf("could not get validator while submitting block for slot %d - %w", attrs.Slot, err)
 	}
 

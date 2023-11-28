@@ -2197,6 +2197,12 @@ func (w *worker) proposerTxPrepare(env *environment, validatorCoinbase *common.A
 		return nil, err
 	}
 
+	fmt.Println("111proposerTxPrepare:", proposerTxReservation{
+		builderBalance: builderBalance,
+		reservedGas:    gas,
+		isEOA:          isEOA,
+	})
+
 	return &proposerTxReservation{
 		builderBalance: builderBalance,
 		reservedGas:    gas,
@@ -2215,6 +2221,13 @@ func (w *worker) proposerTxCommit(env *environment, validatorCoinbase *common.Ad
 	builderBalance := env.state.GetBalance(sender)
 
 	availableFunds := new(big.Int).Sub(builderBalance, reserve.builderBalance)
+
+	fmt.Println("111builderBalance: ", builderBalance)
+	fmt.Println("111reserve: ", reserve)
+	fmt.Println("111reserve.builderBalance: ", reserve.builderBalance)
+
+	fmt.Println("111availableFunds: ", availableFunds)
+	fmt.Println("111availableFunds.Sign(): ", availableFunds.Sign())
 	if availableFunds.Sign() <= 0 {
 		return errors.New("builder balance decreased")
 	}
